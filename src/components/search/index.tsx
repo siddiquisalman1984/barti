@@ -3,15 +3,7 @@ import debounce from 'lodash.debounce';
 import axios from 'axios';
 import { Autocomplete, Stack, styled, TextField } from '@mui/material';
 import { Person } from '@/types';
-import {
-  DEBOUNBCE_TIME,
-  SEARCH_URL,
-  LIMIT_RESULTS,
-  QUERY_PARAM,
-  SEARCH_PARAM,
-  FIRST_NAME_PARAM,
-  LAST_NAME_PARAM
-} from '@/constants';
+import { DEBOUNBCE_TIME, SEARCH_URL, LIMIT_RESULTS, QUERY_PARAM, SEARCH_PARAM } from '@/constants';
 import { useSearchParams } from 'react-router-dom';
 import { Result } from '../results';
 
@@ -33,17 +25,10 @@ const Search: FC = () => {
     }
   };
 
-  const searchPatient = async (first: string, last?: string) => {
-    if (first) {
-      if (last) {
-        const responce = await axios.get(
-          `${SEARCH_URL}${FIRST_NAME_PARAM}${first}&${LAST_NAME_PARAM}${last}&limit=${LIMIT_RESULTS}`
-        );
-        setAutocompleteValue([...responce.data]);
-      } else {
-        const responce = await axios.get(`${SEARCH_URL}${FIRST_NAME_PARAM}${first}&limit=${LIMIT_RESULTS}`);
-        setAutocompleteValue([...responce.data]);
-      }
+  const searchPatient = async (text: string) => {
+    if (text) {
+      const responce = await axios.get(`${SEARCH_URL}${SEARCH_PARAM}${text}&limit=${LIMIT_RESULTS}`);
+      setAutocompleteValue([...responce.data]);
     }
   };
 
@@ -51,7 +36,9 @@ const Search: FC = () => {
     const query = searchParams.get(QUERY_PARAM);
     if (query) {
       const split = query.split(' ');
-      split.length > 1 ? searchPatient(split[0], split[1]) : searchPatient(split[0]);
+      if (split.length > 0) {
+        searchPatient(split[0]);
+      }
       setSearchText(query);
     }
   }, []);
@@ -60,13 +47,14 @@ const Search: FC = () => {
     <Container>
       <Stack sx={{ width: 500 }}>
         <Autocomplete
+          freeSolo
           options={resultOptions}
           onInputChange={(e, changeValue) => {
             debounceSearchHandler(changeValue);
             setSearchText(changeValue);
           }}
-          onChange={(e, selectedValue: Person | null) => {
-            setAutocompleteValue(selectedValue ? [selectedValue] : []);
+          onChange={(e, selectedValue: Person | string | null) => {
+            setAutocompleteValue(selectedValue ? [selectedValue as Person] : []);
             setResultOptions([]);
           }}
           inputValue={searchText}
@@ -80,7 +68,7 @@ const Search: FC = () => {
             />
           )}
           filterOptions={options => options}
-          getOptionLabel={option => option.firstName + ' ' + option.lastName}
+          getOptionLabel={(option: Person) => option.firstName + ' ' + option.lastName}
         />
       </Stack>
       {autocompleteValue && autocompleteValue.length > 0 && <Result rows={autocompleteValue} />}
